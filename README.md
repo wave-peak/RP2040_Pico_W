@@ -1,22 +1,22 @@
 ## RP2040_Pico_W的C代码部署总结（依赖DeepSeek的强力AI辅助）
-1.开发工具相关
-2.编写调试代码
-3.编译代码 && 下载和烧录编译产物
+ - 1.开发工具相关
+ - 2.编写调试代码
+ - 3.编译代码 && 下载和烧录编译产物
 
 ## 开发环境相关
-1.windows的应用商店安装最新版的Ubuntu，例如：ubuntu 22.04.5 LTS
-2.安装必要的工具链
+ - 1.windows的应用商店安装最新版的Ubuntu，例如：ubuntu 24.04.1 LTS
+ - 2.安装必要的工具链
   - 添加 Kitware 的 APT 仓库来获取更新的 CMake 版本：
-     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | sudo apt-key add -
-     sudo apt-add-repository 'deb https://apt.kitware.com/ubuntu/ noble main'
-     sudo apt update
+   - wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | sudo apt-key add -
+   - sudo apt-add-repository 'deb https://apt.kitware.com/ubuntu/ noble main'
+   - sudo apt update
 
 3.安装更新的 CMake
-     sudo apt install cmake
+   - sudo apt install cmake
 
 4.然后安装 ARM 工具链
-     sudo apt install gcc-arm-none-eabi
-     sudo apt install python3 python3-pip
+   - sudo apt install gcc-arm-none-eabi
+   - sudo apt install python3 python3-pip
 5.安装完成后，验证工具链：
   - 检查 ARM GCC：arm-none-eabi-gcc --version
   - 检查 CMake：cmake --version
@@ -40,9 +40,9 @@
      ├── pico_sdk_import.cmake
      └── src/
          └── main.c
-1.从Pico SDK复制pico_sdk_import.cmake文件到创建的项目文件夹的根目录
-2.进入项目根目录：cd my_project_rp2040
-3. 检查是否有pico_sdk_import.cmake文件：ls -la
+ - 1.从Pico SDK复制pico_sdk_import.cmake文件到创建的项目文件夹的根目录
+ - 2.进入项目根目录：cd my_project_rp2040
+ - 3.检查是否有pico_sdk_import.cmake文件：ls -la
    - 如果没有的话，从Pico SDK 复制一份：cp $PICO_SDK_PATH/external/pico_sdk_import.cmake
 
 4.CMakeLists.txt的配置信息
@@ -113,21 +113,21 @@ int main() {
 }
 
 ## 创建构建目录并编译
-cd my_pico_project/
-mkdir build
-rm -rf build/*
-cd build
+ - cd my_pico_project/
+ - mkdir build
+ - rm -rf build/*
+ - cd build
 1.如果是编译普通的LED反转驱动，需要使用这个命令：
-cmake ..
+ - cmake ..
 2.如果是编译cyw43-driver驱动，需要使用这个命令，指定板型为Pico W：
-cmake -DPICO_BOARD=pico_w ..
-make -j4
+ - cmake -DPICO_BOARD=pico_w ..
+ - make -j4
 
 3.构建输出
 构建完成后会生成以下文件：
-my_pico_project.uf2 - 用于拖放编程
-my_pico_project.elf - 用于调试
-my_pico_project.bin - 二进制文件
+ - my_pico_project.uf2 - 用于拖放编程
+ - my_pico_project.elf - 用于调试
+ - my_pico_project.bin - 二进制文件
 
 ## 部署到Pico W
 1.UF2文件部署
@@ -138,30 +138,48 @@ my_pico_project.bin - 二进制文件
  - Pico W会自动重启并运行程序
 
 2.使用picotool（命令行工具）部署
-bash
- - 安装picotool
-git clone https://github.com/raspberrypi/picotool.git
- - 安装必要的 USB 库
-sudo apt update
-sudo apt install libusb-1.0-0-dev
-cd picotool
-mkdir build
-cd build
- - 配置 CMake 启用 USB 支持
-cmake -DPICOTOOL_USB=ON ..  
-make -j4
-sudo cp picotool /usr/local/bin/
-picotool version --verbose
- - 部署固件
-picotool load my_pico_project.uf2
+ 安装picotool
+ - git clone https://github.com/raspberrypi/picotool.git
+ 安装必要的 USB 库
+ - sudo apt update
+ - sudo apt install libusb-1.0-0-dev
+ - cd picotool
+ - mkdir build
+ - cd build
+ 配置 CMake 启用 USB 支持
+ - cmake -DPICOTOOL_USB=ON ..
+ - make -j4
+ - sudo cp picotool /usr/local/bin/
+ - picotool version --verbose
+ 部署固件
+ - picotool load my_pico_project.uf2
 
 ## 优化编译选项
 在CMakeLists.txt中添加：
 1.优化级别
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
+ - set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
 2.调试信息
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+ - set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 ## 内存配置
 1.根据项目需求调整内存分配，在CMakeLists.txt中设置：
-pico_set_binary_type(my_pico_project no_flash)
+ - pico_set_binary_type(my_pico_project no_flash)
+
+## 编译pico-examples
+1.下载pico-examples库
+ - git clone https://github.com/raspberrypi/pico-sdk.git
+
+2.检查pico-sdk库下是否有cyw43-driver和lwip，检查命令如下：
+ - ls -l $PICO_SDK_PATH/lib/cyw43-driver
+ - ls -l $PICO_SDK_PATH/lib/lwip
+ 如果上面两个库都没有，需要进行下载：
+ - git clone git@github.com:georgerobotics/cyw43-driver.git
+ - git clone https://git.savannah.nongnu.org/git/lwip.git
+3.编译pico-examples库
+ - cd pico-examples/
+ - mkdir build
+ - rm -rf build/*
+ - cd build
+ 如果是编译cyw43-driver驱动，需要使用这个命令，指定板型为Pico W：
+ - cmake -DPICO_BOARD=pico_w ..
+ - make -j4 > build.log
