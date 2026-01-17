@@ -17,6 +17,7 @@
 4.然后安装 ARM 工具链
    - sudo apt install gcc-arm-none-eabi
    - sudo apt install python3 python3-pip
+
 5.安装完成后，验证工具链：
   - 检查 ARM GCC：arm-none-eabi-gcc --version
   - 检查 CMake：cmake --version
@@ -68,23 +69,26 @@
 
  - target_link_libraries(pico_project
        pico_cyw43_arch_none
-   )                               #对于Pico W，需要添加WiFi相关的库
+   )   #对于Pico W，需要添加WiFi相关的库
 
  - pico_enable_stdio_usb(pico_project 1) #启用USB输出（可选）
  - pico_enable_stdio_uart(pico_project 0)
 
  - pico_add_extra_outputs(pico_project)  #生成必要的文件
 
-5.检查cyw43-driver子模块是否存在：ls -la $PICO_SDK_PATH/lib/cyw43-driver/
+5.检查cyw43-driver子模块是否存在
+  - 检查命令：ls -la $PICO_SDK_PATH/lib/cyw43-driver/
   - 如果不存在，到pico-sdk网站下载cyw43-driver压缩包解压到本地同样目录；网址：https://github.com/raspberrypi/pico-sdk/
   - 在Pico SDK目录下，查找cyw43_arch.h文件：find $PICO_SDK_PATH -name "cyw43_arch.h" | head -5
 
 6.基础示例代码 (src/main.c)
+
+```c
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "hardware/gpio.h"
-
-int main() {
+int main()
+{
     // 初始化标准库
     stdio_init_all();
     
@@ -111,14 +115,17 @@ int main() {
     
     return 0;
 }
+```
 
 ## 创建构建目录并编译
  - cd my_pico_project/
  - mkdir build
  - rm -rf build/*
  - cd build
+
 1.如果是编译普通的LED反转驱动，需要使用这个命令：
  - cmake ..
+
 2.如果是编译cyw43-driver驱动，需要使用这个命令，指定板型为Pico W：
  - cmake -DPICO_BOARD=pico_w ..
  - make -j4
@@ -140,12 +147,14 @@ int main() {
 2.使用picotool（命令行工具）部署
  安装picotool
  - git clone https://github.com/raspberrypi/picotool.git
+
  安装必要的 USB 库
  - sudo apt update
  - sudo apt install libusb-1.0-0-dev
  - cd picotool
  - mkdir build
  - cd build
+
  配置 CMake 启用 USB 支持
  - cmake -DPICOTOOL_USB=ON ..
  - make -j4
@@ -175,6 +184,7 @@ int main() {
  如果上面两个库都没有，需要进行下载：
  - git clone git@github.com:georgerobotics/cyw43-driver.git
  - git clone https://git.savannah.nongnu.org/git/lwip.git
+
 3.编译pico-examples库
  - cd pico-examples/
  - mkdir build
