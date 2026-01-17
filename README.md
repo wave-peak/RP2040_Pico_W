@@ -176,11 +176,12 @@ int main()
 
 ## 编译pico-examples
 1.下载pico-examples库
- - git clone https://github.com/raspberrypi/pico-sdk.git
+ - git clone git@github.com:raspberrypi/pico-examples.git
 
 2.检查pico-sdk库下是否有cyw43-driver和lwip，检查命令如下：
  - ls -l $PICO_SDK_PATH/lib/cyw43-driver
  - ls -l $PICO_SDK_PATH/lib/lwip
+
  如果上面两个库都没有，需要进行下载：
  - git clone git@github.com:georgerobotics/cyw43-driver.git
  - git clone https://git.savannah.nongnu.org/git/lwip.git
@@ -190,6 +191,7 @@ int main()
  - mkdir build
  - rm -rf build/*
  - cd build
+
  如果是编译cyw43-driver驱动，需要使用这个命令，指定板型为Pico W：
  - cmake -DPICO_BOARD=pico_w ..
  - make -j4 > build.log
