@@ -1,0 +1,10 @@
+{
+    "cmake.generator": "Ninja",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.configureSettings": {
+        "PICO_SDK_PATH": "C:\Users\mianhuaruanruan\pico-sdk", // 请修改为你的pico-sdk路径
+        "PICO_PLATFORM": "rp2040",
+        "PICO_BOARD": "pico_w"
+    },
+    "cmake.configureOnOpen": true
+}

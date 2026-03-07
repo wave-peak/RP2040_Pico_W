@@ -51,7 +51,6 @@
 cmake_minimum_required(VERSION 3.13)
 
 # 导入 Pico SDK（如果 SDK 不在标准路径，可先设置 PICO_SDK_PATH）
-# set(PICO_SDK_PATH /mnt/d/yangsen_files/pico-sdk)
 include(pico_sdk_import.cmake)
 
 # 设置目标板为 Pico W（必须在 project 之前）
@@ -75,8 +74,6 @@ add_executable(pico_w_blink
 target_link_libraries(pico_w_blink
     pico_stdlib                # 包含基础库和 stdio
     pico_cyw43_arch_lwip_poll   # Pico W 无线架构（轮询模式）
-#    hardware_pwm                # 如果需要 PWM
-#    hardware_adc                # 如果需要 ADC
 )
 
 # 在 target_link_libraries 之后添加
@@ -193,8 +190,151 @@ int main()
 1.根据项目需求调整内存分配在CMakeLists.txt中设置：
  - pico_set_binary_type(my_pico_project no_flash)
 
-## 编译、链接
- - 通过main.c查看编译、链接的过程
+## 整体构建流程
+1.通过main.c查看编译、链接的过程，CMakeLists.txt的含义解析：
+## `pico_w_blink` 工程的 CMakeLists.txt 完整解析
+
+这是一个**构建配置文件**，告诉 CMake 如何编译、链接你的 Pico W 项目，最终生成可烧录的二进制文件。下面逐行解释：
+
+---
+
+### **1. 基础设置**
+
+```cmake
+cmake_minimum_required(VERSION 3.13)
+```
+- **作用**：指定所需 CMake 的最低版本（3.13）
+- **生成**：无直接输出，但确保使用兼容的 CMake 版本
+
+```cmake
+include(pico_sdk_import.cmake)
+```
+- **作用**：导入 Pico SDK 的构建系统，加载所有预定义的函数和变量
+- **生成**：使后续能使用 `pico_sdk_init()`、`pico_add_extra_outputs()` 等 SDK 函数
+
+```cmake
+set(PICO_BOARD pico_w)
+```
+- **作用**：指定目标硬件为 Pico W（影响引脚定义、无线芯片支持等）
+- **生成**：使编译器包含 `boards/pico_w.h`，定义 `CYW43_WL_GPIO_LED_PIN` 等板级常量
+
+```cmake
+project(pico_w_blink C CXX ASM)
+```
+- **作用**：定义项目名称和支持的编程语言（C、C++、汇编）
+- **生成**：创建项目作用域，设置输出文件名前缀为 `pico_w_blink`
+
+```cmake
+pico_sdk_init()
+```
+- **作用**：初始化 SDK，设置编译器、查找依赖、配置工具链
+- **生成**：确定编译选项、包含路径，检查子模块（如TinyUSB）
+
+---
+
+### **2. 可执行文件定义**
+
+```cmake
+add_executable(pico_w_blink src/main.c)
+```
+- **作用**：创建可执行文件目标，指定源文件
+- **生成**：告诉 CMake 要生成 `pico_w_blink.elf`，将 `main.c` 加入编译列表
+
+---
+
+### **3. 链接库**
+
+```cmake
+target_link_libraries(pico_w_blink
+    pico_stdlib                # 包含基础库和 stdio
+    pico_cyw43_arch_lwip_poll   # Pico W 无线架构（轮询模式）
+)
+```
+- **作用**：链接必要的 SDK 库到可执行文件
+- **生成**：
+  - **`pico_stdlib`**：拉取核心库（硬件抽象、定时器、GPIO、printf 等）
+  - **`pico_cyw43_arch_lwip_poll`**：拉取无线芯片驱动、lwIP 网络栈（轮询模式）
+
+这些库会递归引入依赖（如 `hardware_gpio`、`pico_lwip`、`cyw43-driver` 等）
+
+---
+
+### **4. 额外包含路径（手动修复）**
+
+```cmake
+target_include_directories(pico_w_blink PRIVATE
+    ${PICO_SDK_PATH}/src/rp2_common/pico_lwip/include
+    ${PICO_SDK_PATH}/src/rp2_common/pico_cyw43_arch/include
+    ${PICO_SDK_PATH}/lib/lwip/src/include
+    ${PICO_SDK_PATH}/lib/cyw43-driver/src
+)
+```
+- **作用**：手动添加关键头文件路径（解决 SDK 自动传播失效的问题）
+- **生成**：确保编译时能找到 `arch/sys_arch.h`、`cyw43.h` 等关键头文件
+
+---
+
+### **5. 输出文件生成**
+
+```cmake
+pico_add_extra_outputs(pico_w_blink)
+```
+- **作用**：为可执行文件生成多种格式的输出文件
+- **生成**：
+  - `pico_w_blink.elf` - 标准可执行文件
+  - `pico_w_blink.uf2` - 可直接拖放烧录的格式
+  - `pico_w_blink.hex` - Intel HEX 格式
+  - `pico_w_blink.bin` - 原始二进制
+  - `pico_w_blink.dis` - 反汇编文件（调试用）
+  - `pico_w_blink.map` - 内存映射文件
+
+---
+
+### **6. 输入输出配置**
+
+```cmake
+pico_enable_stdio_usb(pico_w_blink 1)
+pico_enable_stdio_uart(pico_w_blink 0)
+```
+- **作用**：配置标准输入输出（printf）的 backend
+- **生成**：
+  - `pico_enable_stdio_usb(1)`：启用 USB CDC 串口，`printf` 输出到 USB
+  - `pico_enable_stdio_uart(0)`：禁用硬件 UART 输出
+
+最终效果：程序中的 `printf` 会通过 USB 发送到电脑（需串口监视器查看）
+
+---
+
+## **整体构建流程**
+
+| 阶段 | 生成的内容 | 最终产物 |
+|------|------------|----------|
+| **配置** | CMakeCache.txt、构建规则 | 确定编译选项、依赖关系 |
+| **编译** | 每个 `.c` → `.o` 目标文件 | 几十个 `.o` 文件（SDK 和自己的代码） |
+| **链接** | 所有 `.o` + 库 → `.elf` | `pico_w_blink.elf` |
+| **后处理** | 格式转换 | `.uf2`、`.hex`、`.bin`、`.dis`、`.map` |
+
+## **关键生成文件详解**
+
+| 文件 | 用途 |
+|------|------|
+| `pico_w_blink.elf` | 带调试信息的可执行文件（给调试器用） |
+| `pico_w_blink.uf2` | **烧录到 Pico W 的文件**（拖放即可） |
+| `pico_w_blink.hex` | Intel HEX 格式（某些烧录工具用） |
+| `pico_w_blink.map` | 内存分布图（分析 RAM/Flash 使用） |
+| `pico_w_blink.dis` | 反汇编代码（调试优化问题） |
+
+## **写的代码在其中的位置**
+
+`src/main.c` 通过 `add_executable` 加入编译链，经过：
+1. **预处理**：展开宏、包含头文件
+2. **编译**：生成汇编/机器码
+3. **链接**：与 SDK 库（如 `cyw43_arch_gpio_put` 的实现）合并
+4. **后处理**：转换成可烧录的 `.uf2`
+
+最终，Pico W 执行的就是 `main()` 函数中的 LED 闪烁逻辑。
+
+---
 
 ## 编译pico-examples
 1.下载pico-examples库
