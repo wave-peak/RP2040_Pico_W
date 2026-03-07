@@ -6,7 +6,7 @@
 ## 开发环境相关
  - 1.windows的应用商店安装最新版的Ubuntu，例如：ubuntu 24.04.1 LTS
  - 2.安装必要的工具链
-  - 添加 Kitware 的 APT 仓库来获取更新的 CMake 版本：
+   - 添加 Kitware 的 APT 仓库来获取更新的 CMake 版本：
    - wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | sudo apt-key add -
    - sudo apt-add-repository 'deb https://apt.kitware.com/ubuntu/ noble main'
    - sudo apt update
@@ -47,34 +47,53 @@
    - 如果没有的话，从Pico SDK 复制一份：cp $PICO_SDK_PATH/external/pico_sdk_import.cmake
 
 4.CMakeLists.txt的配置信息
- - cmake_minimum_required(VERSION 3.13)
- - include(pico_sdk_import.cmake)  #导入Pico SDK
- - project(pico_project C CXX ASM) #初始化项目
- - set(PICO_BOARD pico_w)          #设置目标板为 Pico W
- - pico_sdk_init()                 #初始化Pico SDK
-   add_executable(pico_project 
-       src/main_led.c
-   )                               #添加可执行文件
+```cmake
+cmake_minimum_required(VERSION 3.13)
 
- - target_link_libraries(pico_project
-       pico_stdlib
-       hardware_gpio
-       hardware_uart
-       hardware_i2c
-       hardware_spi
-       hardware_pwm
-       hardware_adc
-       hardware_flash
-   )
+# 导入 Pico SDK（如果 SDK 不在标准路径，可先设置 PICO_SDK_PATH）
+# set(PICO_SDK_PATH /mnt/d/yangsen_files/pico-sdk)
+include(pico_sdk_import.cmake)
 
- - target_link_libraries(pico_project
-       pico_cyw43_arch_none
-   )   #对于Pico W，需要添加WiFi相关的库
+# 设置目标板为 Pico W（必须在 project 之前）
+set(PICO_BOARD pico_w)
 
- - pico_enable_stdio_usb(pico_project 1) #启用USB输出（可选）
- - pico_enable_stdio_uart(pico_project 0)
+# 定义项目名称和编程语言
+project(pico_w_blink C CXX ASM)
 
- - pico_add_extra_outputs(pico_project)  #生成必要的文件
+# 初始化 SDK（必须）
+pico_sdk_init()
+
+# 在 pico_sdk_init() 之后添加
+# message(STATUS "Pico SDK Version: ${PICO_SDK_VERSION_STRING}")
+
+# 添加可执行文件
+add_executable(pico_w_blink
+    src/main.c
+)
+
+# 链接必要的库（注意只保留一个 cyw43 架构）
+target_link_libraries(pico_w_blink
+    pico_stdlib                # 包含基础库和 stdio
+    pico_cyw43_arch_lwip_poll   # Pico W 无线架构（轮询模式）
+#    hardware_pwm                # 如果需要 PWM
+#    hardware_adc                # 如果需要 ADC
+)
+
+# 在 target_link_libraries 之后添加
+target_include_directories(pico_w_blink PRIVATE
+    ${PICO_SDK_PATH}/src/rp2_common/pico_lwip/include
+    ${PICO_SDK_PATH}/src/rp2_common/pico_cyw43_arch/include
+    ${PICO_SDK_PATH}/lib/lwip/src/include
+    ${PICO_SDK_PATH}/lib/cyw43-driver/src
+)
+
+# 生成 UF2 等输出文件
+pico_add_extra_outputs(pico_w_blink)
+
+# 启用 USB 输出（用于 printf），禁用 UART（可选）
+pico_enable_stdio_usb(pico_w_blink 1)
+pico_enable_stdio_uart(pico_w_blink 0)
+```
 
 5.检查cyw43-driver子模块是否存在
   - 检查命令：ls -la $PICO_SDK_PATH/lib/cyw43-driver/
@@ -165,14 +184,17 @@ int main()
 
 ## 优化编译选项
 在CMakeLists.txt中添加：
-1.优化级别
- - set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
-2.调试信息
- - set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+ - 1.优化级别
+   - set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
+ - 2.调试信息
+   - set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 ## 内存配置
-1.根据项目需求调整内存分配，在CMakeLists.txt中设置：
+1.根据项目需求调整内存分配在CMakeLists.txt中设置：
  - pico_set_binary_type(my_pico_project no_flash)
+
+## 编译、链接
+ - 通过main.c查看编译、链接的过程
 
 ## 编译pico-examples
 1.下载pico-examples库
@@ -195,3 +217,4 @@ int main()
  如果是编译cyw43-driver驱动，需要使用这个命令，指定板型为Pico W：
  - cmake -DPICO_BOARD=pico_w ..
  - make -j4 > build.log
+ 
