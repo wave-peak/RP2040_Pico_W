@@ -192,7 +192,6 @@ int main()
 
 ## 整体构建流程
 1.通过main.c查看编译、链接的过程，CMakeLists.txt的含义解析：
-## `pico_w_blink` 工程的 CMakeLists.txt 完整解析
 
 这是一个**构建配置文件**，告诉 CMake 如何编译、链接你的 Pico W 项目，最终生成可烧录的二进制文件。下面逐行解释：
 
