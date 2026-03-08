@@ -191,9 +191,8 @@ int main()
  - pico_set_binary_type(my_pico_project no_flash)
 
 ## 整体构建流程
-1.通过main.c查看编译、链接的过程，CMakeLists.txt的含义解析：
-
-这是一个**构建配置文件**，告诉 CMake 如何编译、链接你的 Pico W 项目，最终生成可烧录的二进制文件。下面逐行解释：
+main.c的CMakeLists.txt是一个**构建配置文件**，告诉 CMake 如何编译、链接Pico W 项目，
+最终生成可烧录的二进制文件。下面逐行解释一下：
 
 ---
 
@@ -208,7 +207,8 @@ cmake_minimum_required(VERSION 3.13)
 ```cmake
 include(pico_sdk_import.cmake)
 ```
-- **作用**：导入 Pico SDK 的构建系统，加载所有预定义的函数和变量
+- **作用**：导入 Pico SDK 的构建系统，加载所有预定义的函数和变量（设置CMAKE_TOOLCHAIN_FILE变量指定工具链文件）
+   - CMake调用指定的工具链文件的位置：/usr/share/cmake-4.2/Modules/CMakeDetermineSystem.cmake(146)
 - **生成**：使后续能使用 `pico_sdk_init()`、`pico_add_extra_outputs()` 等 SDK 函数
 
 ```cmake
