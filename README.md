@@ -304,6 +304,34 @@ pico_enable_stdio_uart(pico_w_blink 0)
 
 ---
 
+### **7. 构建命令**
+```cmake
+cmake -DPICO_BOARD=pico_w ..  # 配置构建系统并指定目标硬件为 Pico W
+make -j4
+```
+
+| 部分 | 含义 |
+|------|------------|
+| **cmake** | CMake 配置命令 |
+| **-D** | 定义变量的选项（类似 C 语言的 #define）|
+| **PICO_BOARD=pico_w** | 定义变量名为 PICO_BOARD，值为 pico_w |
+| **..** | 指定 CMakeLists.txt 所在的目录（上级目录） |
+
+ - 运行 cmake -DPICO_BOARD=pico_w .. 时，实际发生的步骤：
+```graph TD
+    A[cmake -DPICO_BOARD=pico_w ..] --> B[读取 CMakeLists.txt]
+    B --> C[设置 PICO_BOARD=pico_w]
+    C --> D[包含 pico_sdk_import.cmake]
+    D --> E[pico_sdk_init]
+    E --> F[查找 boards/pico_w.h]
+    F --> G[定义板级常量]
+    G --> H[启用 CYW43 无线支持]
+    H --> I[配置工具链]
+    I --> J[生成构建文件]
+```
+
+---
+
 ## **整体构建流程**
 
 | 阶段 | 生成的内容 | 最终产物 |
