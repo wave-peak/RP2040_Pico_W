@@ -318,6 +318,7 @@ make -j4
 | **..** | 指定 CMakeLists.txt 所在的目录（上级目录） |
 
  - 运行 cmake -DPICO_BOARD=pico_w .. 时，实际发生的步骤：
+
 graph TD
     A[cmake -DPICO_BOARD=pico_w ..] --> B[读取 CMakeLists.txt]
     B --> C[设置 PICO_BOARD=pico_w]
@@ -329,6 +330,15 @@ graph TD
     H --> I[配置工具链]
     I --> J[生成构建文件]
 
+---
+
+| 部分 | 含义 |
+|------|------------|
+| **make** | GNU Make 构建工具，读取 Makefile 并执行编译 |
+| **-j** | --jobs 的简写，指定并行任务数 |
+| **4** | 同时运行的编译任务数量 |
+
+ - 实际作用：并行编译多个源文件
 ---
 
 ## **整体构建流程**
