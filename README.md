@@ -372,6 +372,30 @@ graph TD
 
 ---
 
+## 创建的project和pico-sdk代码的一些总结
+1.build/pico-sdk/src/rp2_common/pico_stdlib和pico-sdk/src/rp2_common/pico_stdlib的关系
+ - build/pico-sdk/src/rp2_common/pico_stdlib
+   - CMake构建系统为了组织编译产物而创建的**影子目录**
+   - **存放编译产物**：pico_stdlib 本身是一个“聚合库”，通过target_link_libraries将其他基础库（如hardware_gpio, pico_runtime等）组合在一起。作为构建系统的一个逻辑节点用于管理依赖关系和生成传递性编译命令。
+   - **保持源码目录清洁**：将编译过程中产生的临时文件（如.d依赖文件）和最终的目标文件全部隔离在build目录下。源代码目录 (pico-sdk) 始终保持着原始状态不会被污染。
+   - **生成传递性依赖**：还会生成一些用于描述pico_stdlib这个“库接口”的文件，告诉链接器链接pico_stdlib时，实际需要链接哪些具体的底层库，以及需要哪些头文件路径。
+ - pico-sdk/src/rp2_common/pico_stdlib
+   - SDK**源码目录**
+ - 二者是**镜像**与**源头**的关系
+
+|------|------|------|
+| 目录层级 | pico-sdk/src/rp2_common/pico_stdlib | build/pico-sdk/src/rp2_common/pico_stdlib （构建目录） |
+| 文件性质 | 包含源代码和 CMakeLists.txt | 包含编译产生的中间文件（.o）和 cmake_install.cmake、Makefile 等构建系统生成的文件 |
+| 在构建中的角色 | 作为输入，CMake读取这里的 CMakeLists.txt，了解如何编译pico_stdlib | 作为输出。是编译器写回目标文件的地方，也是 make 命令执行的工作目录。 |
+| 生命周期 | 永久存在是SDK的一部分，只读（在构建意义上）。 | 是cmake命令的产物，可以被安全地删除和重新生成。 |
+|------|------|------|
+
+💡 总结一下
+**源码目录** (pico-sdk/.../pico_stdlib) 是“设计图纸”，定义了pico_stdlib库由哪些部分组成。
+**构建目录** (build/.../pico_stdlib) 是“施工现场”，cmake 命令在这里根据图纸创建了脚手架（Makefile），make 命令则在这里调用编译器，最终将你的 main.c和pico_stdlib涉及的所有底层模块，编译成.o和.a文件，最终链接成.uf2文件。
+
+---
+
 ## 编译pico-examples
 1.下载pico-examples库
  - git clone git@github.com:raspberrypi/pico-examples.git
