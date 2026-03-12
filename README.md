@@ -384,8 +384,8 @@ graph TD
  - 二者是**镜像**与**源头**的关系
 
 **关键生成文件详解**
-|------|------|------|
-| **目录层级** | pico-sdk/src/rp2_common/pico_stdlib | build/pico-sdk/src/rp2_common/pico_stdlib （构建目录） |
+| 目录层级 | pico-sdk/src/rp2_common/pico_stdlib | build/pico-sdk/src/rp2_common/pico_stdlib （构建目录） |
+| --- | --- | --- |
 | **文件性质** | 包含源代码和 CMakeLists.txt | 包含编译产生的中间文件（.o）和 cmake_install.cmake、Makefile 等构建系统生成的文件 |
 | **在构建中的角色** | 作为输入，CMake读取这里的 CMakeLists.txt，了解如何编译pico_stdlib | 作为输出。是编译器写回目标文件的地方，也是 make 命令执行的工作目录。 |
 | **生命周期** | 永久存在是SDK的一部分，只读（在构建意义上）。 | 是cmake命令的产物，可以被安全地删除和重新生成。 |
