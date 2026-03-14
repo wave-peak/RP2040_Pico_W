@@ -394,6 +394,49 @@ graph TD
  - **源码目录** (pico-sdk/.../pico_stdlib) 是“设计图纸”，定义了pico_stdlib库由哪些部分组成。
  - **构建目录** (build/.../pico_stdlib) 是“施工现场”，cmake 命令在这里根据图纸创建了脚手架（Makefile），make 命令则在这里调用编译器，最终将你的 main.c和pico_stdlib涉及的所有底层模块，编译成.o和.a文件，最终链接成.uf2文件。
 
+**make 命令时的默认行为**
+
+```cmake
+# The main all target
+all: cmake_check_build_system
+    # 1. 开始进度跟踪
+    cd ... && cmake_progress_start ...
+    # 2. 递归构建 pico_stdlib 目标
+    cd ... && $(MAKE) ... -f CMakeFiles/Makefile2 pico-sdk/src/rp2_common/pico_stdlib/all
+    # 3. 结束进度跟踪
+    cmake_progress_start ... 0
+.PHONY : all
+```
+ - all: 伪目标，是 Makefile 的默认目标，当输入 make 时，这个目标被执行
+ - cmake_check_build_system 是依赖项，先检查 CMake 配置是否已过时，必要时重新运行 CMake
+ - $(CMAKE_COMMAND)：CMake 可执行文件路径（通常是 cmake）
+ - -E：以命令模式运行（执行特定工具命令）
+ - cmake_progress_start：CMake 内置命令，开始记录构建进度
+ - pico-sdk/src/rp2_common/pico_stdlib/all：要构建的具体目标
+ - 作用：递归调用 make，专门构建 pico_stdlib 这个库及其所有依赖
+
+**.uf2 文件生成过程**
+ - pico_stdlib 及其依赖的底层库会先被编译成静态库（.a 文件），在最链接阶段这些静态库会和main.c 编译出的目标文件（.o）一起，被链接器组合成最终的 .elf 文件，并生成可以烧录的 .uf2 文件。
+   - 编译与归档：生成静态库 (.a 文件)
+     - 动作：运行 make 时，构建系统会为 SDK 中的每一个源文件（例如 gpio.c, timer.c, adc.c 等）调用编译器，将它们分别编译成对应的目标文件（.o 文件）。
+     - 关键点：.o 文件生成后，构建系统会使用 ar 归档工具将它们打包成一个或多个静态库文件，例如 libpico_stdlib.a。这些 .a 文件就是 pico_stdlib 的实体，它们被保存在 build/pico-sdk/src/rp2_common/下的各个子目录中。
+   - 链接：组合成最终可执行文件 (.elf 文件)
+     - 动作：所有库和代码都编译成 .o 或 .a 文件后，链接器（ld）开始工作。
+     - 关键点：链接器的任务是将 main.c.o 文件和 libpico_stdlib.a 链接在一起。它会从静态库中解析并提取你的 main 函数所需要的所有函数和变量（例如 gpio_put, sleep_ms, stdio_init_all 的实现），并将它们与代码合并，最终生成一个完整的、包含所有机器码的.elf 文件。
+   - 后处理：生成烧录文件 (.uf2 文件)
+     - 动作：pico_add_extra_outputs() 函数会调用 elf2uf2 工具，将 .elf 文件转换成 Pico 能够识别的 .uf2 格式
+     - 关键点：elf2uf2 工具会解析 .elf 文件中的指令和数据，按照芯片的内存布局（Flash 和 RAM）重新组织，并打包成适合通过 USB 拖拽烧录的 UF2 格式。
+ - pico_stdlib是一个“粘合剂”库：在 Pico SDK 的 CMake 定义中，pico_stdlib被定义为一个 接口库 (INTERFACE library) 或 对象库 (OBJECT library) 。通过 target_link_libraries 将 pico_runtime, hardware_gpio, hardware_uart 等十几个底层的基础库“粘合”在一起。
+ - 构建系统的处理：构建系统会为这些底层的基础库（如 hardware_gpio）分别创建构建目标，并生成对应的静态库，例如 libhardware_gpio.a。程序链接 pico_stdlib 时，链接器会自动找到并包含所有这些底层库，这是一种更模块化、更易于管理的设计方式。
+
+**pico_cyw43_arch和pico_cyw43_arch_none的区别**
+| 特性 | pico_cyw43_arch (及其变体) | pico_cyw43_arch_none |
+| --- | --- | --- |
+| **主要功能** | 提供完整的无线芯片支持，包括Wi-Fi和蓝牙 | 仅提供对无线芯片上 GPIO 的基本访问（例如控制板载LED） |
+| **包含的组件** | 集成了 cyw43_driver 驱动和 lwIP 网络协议栈 | 仅包含最基本的驱动部分，不包含 lwIP 等网络协议栈。 |
+| **代码示例** | 包含 cyw43_arch_init(), cyw43_arch_enable_sta_mode(), cyw43_wifi_scan() 等完整的Wi-Fi操作函数 。 | 通常仅使用 cyw43_arch_gpio_put() 来控制LED，无法调用Wi-Fi相关函数 。 |
+| **适用场景** | 需要Wi-Fi连接（如HTTP请求、MQTT）、蓝牙通信的网络应用。 | 仅需控制Pico W板载LED 的超轻量级项目，或不使用无线功能但仍需寻址板载LED的情况。 |
+
 ---
 
 ## 编译pico-examples
